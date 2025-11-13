@@ -2,7 +2,9 @@ import { Canvas } from '@react-three/fiber';
 import { FirstPersonControls } from './FirstPersonControls';
 import { PointCloud } from './PointCloud';
 import { CoordinateAxes } from './CoordinateAxes';
+import { Lines3D } from './Lines3D';
 import { useMemo } from 'react';
+import { PointCloudData, LineData } from '@/hooks/usePointCloudLoader';
 
 const generateSpherePoints = (numPoints: number, radius: number) => {
   const points = new Float32Array(numPoints * 3);
@@ -29,8 +31,16 @@ const generateSpherePoints = (numPoints: number, radius: number) => {
   return { points, colors };
 };
 
-export const Scene3D = () => {
-  const { points, colors } = useMemo(() => generateSpherePoints(5000, 2.0), []);
+interface Scene3DProps {
+  pointCloudData?: PointCloudData | null;
+  linesData?: LineData[];
+}
+
+export const Scene3D = ({ pointCloudData, linesData = [] }: Scene3DProps) => {
+  const defaultData = useMemo(() => generateSpherePoints(5000, 2.0), []);
+
+  // Use loaded data if available, otherwise use default
+  const displayData = pointCloudData || defaultData;
 
   return (
     <div className="w-full h-screen">
@@ -51,7 +61,14 @@ export const Scene3D = () => {
         <CoordinateAxes length={1.5} />
         
         {/* Point cloud */}
-        <PointCloud points={points} colors={colors} size={0.03} />
+        <PointCloud 
+          points={displayData.points} 
+          colors={displayData.colors} 
+          size={0.03} 
+        />
+        
+        {/* Lines from Python */}
+        {linesData.length > 0 && <Lines3D lines={linesData} />}
         
         {/* Grid helper for reference */}
         <gridHelper args={[10, 10, '#00ffff', '#003333']} />
