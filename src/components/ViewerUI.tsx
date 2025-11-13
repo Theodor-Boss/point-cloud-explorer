@@ -1,7 +1,12 @@
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
-export const ViewerUI = () => {
+interface ViewerUIProps {
+  pointCount?: number;
+  isLoaded?: boolean;
+}
+
+export const ViewerUI = ({ pointCount = 5000, isLoaded = false }: ViewerUIProps) => {
   return (
     <div className="fixed inset-0 pointer-events-none">
       {/* Top bar */}
@@ -11,7 +16,8 @@ export const ViewerUI = () => {
             3D Point Cloud Viewer
           </h1>
           <p className="text-muted-foreground text-sm">
-            First-person navigation • 5,000 points
+            First-person navigation • {pointCount.toLocaleString()} points
+            {isLoaded && ' • Python data loaded'}
           </p>
         </div>
         
