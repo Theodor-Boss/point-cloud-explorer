@@ -79,7 +79,7 @@ export const FirstPersonControls = ({ movementSpeed = 2, lookSpeed = 0.002 }: Fi
       }
     };
 
-    const handleMouseMove = (event: PointerEvent) => {
+    const handleMouseMove = (event: MouseEvent) => {
       if (!isLocked.current) return;
 
       const movementX = event.movementX || 0;
@@ -98,7 +98,16 @@ export const FirstPersonControls = ({ movementSpeed = 2, lookSpeed = 0.002 }: Fi
     };
 
     const handlePointerLockChange = () => {
-      isLocked.current = document.pointerLockElement === gl.domElement;
+      const locked = document.pointerLockElement === gl.domElement;
+      isLocked.current = locked;
+
+      // Reset movement flags whenever pointer lock state changes to avoid "stuck" keys
+      moveForward.current = false;
+      moveBackward.current = false;
+      moveLeft.current = false;
+      moveRight.current = false;
+      moveUp.current = false;
+      moveDown.current = false;
     };
 
     const handleClick = () => {
@@ -109,15 +118,14 @@ export const FirstPersonControls = ({ movementSpeed = 2, lookSpeed = 0.002 }: Fi
 
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
-    // Use pointerrawupdate for high-precision mouse input instead of mousemove
-    gl.domElement.addEventListener('pointerrawupdate', handleMouseMove);
+    document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('pointerlockchange', handlePointerLockChange);
     gl.domElement.addEventListener('click', handleClick);
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('keyup', handleKeyUp);
-      gl.domElement.removeEventListener('pointerrawupdate', handleMouseMove);
+      document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('pointerlockchange', handlePointerLockChange);
       gl.domElement.removeEventListener('click', handleClick);
     };
