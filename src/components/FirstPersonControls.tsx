@@ -1,15 +1,14 @@
 import { useRef, useEffect } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
-import { PointerLockControls } from '@react-three/drei';
 import * as THREE from 'three';
 
 interface FirstPersonControlsProps {
   movementSpeed?: number;
+  lookSpeed?: number;
 }
 
-export const FirstPersonControls = ({ movementSpeed = 2 }: FirstPersonControlsProps) => {
-  const { camera } = useThree();
-  const controlsRef = useRef<any>(null);
+export const FirstPersonControls = ({ movementSpeed = 2, lookSpeed = 0.002 }: FirstPersonControlsProps) => {
+  const { camera, gl } = useThree();
   
   const moveForward = useRef(false);
   const moveBackward = useRef(false);
@@ -20,6 +19,10 @@ export const FirstPersonControls = ({ movementSpeed = 2 }: FirstPersonControlsPr
 
   const velocity = useRef(new THREE.Vector3());
   const direction = useRef(new THREE.Vector3());
+  
+  // Accumulated rotation as floats to capture sub-pixel movements
+  const euler = useRef(new THREE.Euler(0, 0, 0, 'YXZ'));
+  const isLocked = useRef(false);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -76,18 +79,53 @@ export const FirstPersonControls = ({ movementSpeed = 2 }: FirstPersonControlsPr
       }
     };
 
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!isLocked.current) return;
+
+      const movementX = event.movementX || 0;
+      const movementY = event.movementY || 0;
+
+      // Accumulate rotations as floats - this ensures even tiny movements count
+      euler.current.y -= movementX * lookSpeed;
+      euler.current.x -= movementY * lookSpeed;
+
+      // Clamp pitch to prevent flipping
+      const PI_2 = Math.PI / 2;
+      euler.current.x = Math.max(-PI_2, Math.min(PI_2, euler.current.x));
+    };
+
+    const handlePointerLockChange = () => {
+      isLocked.current = document.pointerLockElement === gl.domElement;
+    };
+
+    const handleClick = () => {
+      if (!isLocked.current) {
+        gl.domElement.requestPointerLock();
+      }
+    };
+
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('pointerlockchange', handlePointerLockChange);
+    gl.domElement.addEventListener('click', handleClick);
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('keyup', handleKeyUp);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('pointerlockchange', handlePointerLockChange);
+      gl.domElement.removeEventListener('click', handleClick);
     };
-  }, []);
+  }, [gl, lookSpeed]);
 
   useFrame((_, delta) => {
-    if (!controlsRef.current?.isLocked) return;
+    if (!isLocked.current) return;
 
+    // Apply accumulated rotation to camera
+    camera.quaternion.setFromEuler(euler.current);
+
+    // Handle movement
     velocity.current.x -= velocity.current.x * 10.0 * delta;
     velocity.current.y -= velocity.current.y * 10.0 * delta;
     velocity.current.z -= velocity.current.z * 10.0 * delta;
@@ -101,10 +139,15 @@ export const FirstPersonControls = ({ movementSpeed = 2 }: FirstPersonControlsPr
     if (moveLeft.current || moveRight.current) velocity.current.x -= direction.current.x * movementSpeed * delta;
     if (moveUp.current || moveDown.current) velocity.current.y += direction.current.y * movementSpeed * delta;
 
-    controlsRef.current.moveRight(-velocity.current.x * delta);
-    controlsRef.current.moveForward(-velocity.current.z * delta);
+    // Get camera direction vectors
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+
+    // Apply movement
+    camera.position.addScaledVector(forward, -velocity.current.z * delta);
+    camera.position.addScaledVector(right, -velocity.current.x * delta);
     camera.position.y += velocity.current.y * delta;
   });
 
-  return <PointerLockControls ref={controlsRef} />;
+  return null;
 };
