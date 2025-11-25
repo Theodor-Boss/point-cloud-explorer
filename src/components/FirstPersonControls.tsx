@@ -79,11 +79,14 @@ export const FirstPersonControls = ({ movementSpeed = 2, lookSpeed = 0.002 }: Fi
       }
     };
 
-    const handleMouseMove = (event: MouseEvent) => {
+    const handleMouseMove = (event: PointerEvent) => {
       if (!isLocked.current) return;
 
       const movementX = event.movementX || 0;
       const movementY = event.movementY || 0;
+
+      // Log to verify we're getting sub-pixel precision
+      console.log('Raw movement:', movementX, movementY, 'Type:', typeof movementX);
 
       // Accumulate rotations as floats - this ensures even tiny movements count
       euler.current.y -= movementX * lookSpeed;
@@ -106,14 +109,15 @@ export const FirstPersonControls = ({ movementSpeed = 2, lookSpeed = 0.002 }: Fi
 
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
-    document.addEventListener('mousemove', handleMouseMove);
+    // Use pointerrawupdate for high-precision mouse input instead of mousemove
+    gl.domElement.addEventListener('pointerrawupdate', handleMouseMove);
     document.addEventListener('pointerlockchange', handlePointerLockChange);
     gl.domElement.addEventListener('click', handleClick);
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('keyup', handleKeyUp);
-      document.removeEventListener('mousemove', handleMouseMove);
+      gl.domElement.removeEventListener('pointerrawupdate', handleMouseMove);
       document.removeEventListener('pointerlockchange', handlePointerLockChange);
       gl.domElement.removeEventListener('click', handleClick);
     };
