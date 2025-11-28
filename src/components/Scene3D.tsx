@@ -3,6 +3,7 @@ import { FirstPersonControls } from './FirstPersonControls';
 import { PointCloud } from './PointCloud';
 import { CoordinateAxes } from './CoordinateAxes';
 import { Lines3D } from './Lines3D';
+import { ImagePlane } from './ImagePlane';
 import { useMemo } from 'react';
 import { PointCloudData, LineData } from '@/hooks/usePointCloudLoader';
 

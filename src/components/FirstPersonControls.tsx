@@ -151,9 +151,14 @@ export const FirstPersonControls = ({ movementSpeed = 2, lookSpeed = 0.002 }: Fi
     if (moveLeft.current || moveRight.current) velocity.current.x -= direction.current.x * movementSpeed * delta;
     if (moveUp.current || moveDown.current) velocity.current.y += direction.current.y * movementSpeed * delta;
 
-    // Get camera direction vectors
+    // Get camera direction vectors - project forward onto horizontal plane (Minecraft-style)
     const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+    forward.y = 0; // Remove vertical component for horizontal-only movement
+    forward.normalize();
+    
     const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+    right.y = 0; // Remove vertical component
+    right.normalize();
 
     // Apply movement
     camera.position.addScaledVector(forward, -velocity.current.z * delta);
